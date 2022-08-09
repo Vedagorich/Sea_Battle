@@ -6,98 +6,166 @@ import random
 tk = Tk()
 app_running = True
 
-size_canvas_x = 600
-size_canvas_y = 600
-s_x = s_y = 8  # размер игрового поля
+size_canvas_x = 500
+size_canvas_y = 500
+s_x = s_y = 6  # размер игрового поля
 step_x = size_canvas_x // s_x  # шаг по горизонтали
 step_y = size_canvas_y // s_y  # шаг по вертикали
 size_canvas_x = step_x * s_x
 size_canvas_y = step_y * s_y
 
-menu_x = 250
+menu_x = step_x * 4  # размер меню по X
+menu_y = 40  # размер меню по Y
 
-ships = s_x // 2  # определяем макс кол-во кораблей
+ships = (s_x // 2)+1  # определяем макс кол-во кораблей
 ship_len1 = s_x // 5  # длина первого корабля
-ship_len2 = s_x // 3  # длина второго корабля
-ship_len3 = s_x // 2  # длина третьего корабля
-enemy_ships = [[0 for i in range(s_y + 1)] for i in range(s_x + 1)]  # список кораблей противника
+ship_len2 = s_x // 3 # длина второго корабля
+ship_len3 = s_x // 2 # длина третьего корабля
+enemy_ships1 = [[0 for i in range(s_x + 1)] for i in range(s_y + 1)]  # список кораблей игрока
+enemy_ships2 = [[0 for i in range(s_x + 1)] for i in range(s_y + 1)]  # список кораблей компьютера
 list_ids = []  # список объектов canvas
 
+# список куда мы кликнули мышкой
+points1 = [[-1 for i in range(s_x)] for i in range(s_y)]
+points2 = [[-1 for i in range(s_x)] for i in range(s_y)]
 
-# print(enemy_ships)
+# список попаданий по коблям противника
+boom = [[0 for i in range(s_x)] for i in range(s_y)]
+
+# список кораблей компьютера
+ships_list = []
+
+# print(enemy_ships1)
 
 
-def on_closing():
+def on_closing():  # функция выхода из игры
     global app_running
     if messagebox.askokcancel("Выход из игры", "Хотите выйти?"):
         app_running = False
         tk.destroy()
 
 
+# характеристики нашего приложения и отрисовка поля.
 tk.protocol("WM_DELETE_WINDOW", on_closing)
 tk.title("Морской бой")
 tk.resizable(0, 0)
 tk.wm_attributes("-topmost", 1)
-canvas = Canvas(tk, width=size_canvas_x + menu_x, height=size_canvas_y, bd=0, highlightthickness=0)
-canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")
+canvas = Canvas(tk, width=size_canvas_x + menu_x + size_canvas_x, height=size_canvas_y + menu_y, bd=0,
+                highlightthickness=0)
+canvas.create_rectangle(0, 0, size_canvas_x, size_canvas_y, fill="white")  # область игрока
+canvas.create_rectangle(size_canvas_x + menu_x, 0, size_canvas_x + menu_x + size_canvas_x, size_canvas_y,
+                        fill="gray")  # область компьютера
 canvas.pack()
 tk.update()
 
 
-def draw_table():
+def draw_table(offset_x=0):  # функция отрисовки ячеек на поле
     for i in range(0, s_x + 1):
-        canvas.create_line(step_x * i, 0, step_x * i, size_canvas_y)
+        canvas.create_line(offset_x + step_x * i, 0, offset_x + step_x * i, size_canvas_y)
     for i in range(0, s_y + 1):
-        canvas.create_line(0, step_y * i, size_canvas_x, step_y * i)
+        canvas.create_line(offset_x, step_y * i, offset_x + size_canvas_x, step_y * i)
 
 
 draw_table()
+draw_table(size_canvas_x + menu_x)
+
+# создаем название полям игрока и компа
+t0 = Label(tk, text="Поле игрока", font=("Helvetica", 16))
+t0.place(x=size_canvas_x // 2 - t0.winfo_reqwidth() // 2, y=size_canvas_y + 3)
+t1 = Label(tk, text="Поле компьютера", font=("Helvetica", 16))
+t1.place(x=size_canvas_x + menu_x + size_canvas_x // 2 - t1.winfo_reqwidth() // 2, y=size_canvas_y + 3)
+
+# цветом выделяем ход игрока
+t0.configure(bg="red")
+t0.configure(bg="#f0f0f0")
 
 
-def button_show_enemy():
+def button_show_enemy1():  # кнопка отрисовывает все корабли противника
     for i in range(0, s_x):
         for j in range(0, s_y):
-            if enemy_ships[j][i] > 0:
+            if enemy_ships1[j][i] > 0:
+                color = "red"
+                if points1[j][i] != -1:
+                    color = "green"
                 _id = canvas.create_rectangle(i * step_x, j * step_y, i * step_x + step_x, j * step_y + step_y,
-                                              fill="red")
+                                              fill=color)
                 list_ids.append(_id)
 
 
-def button_begin_again():
+def button_show_enemy2():  # кнопка отрисовывает все корабли противника
+    for i in range(0, s_x):
+        for j in range(0, s_y):
+            if enemy_ships2[j][i] > 0:
+                color = "red"
+                if points2[j][i] != -1:
+                    color = "green"
+                _id = canvas.create_rectangle(size_canvas_x + menu_x + i * step_x, j * step_y, size_canvas_x + menu_x + i * step_x + step_x, j * step_y + step_y,
+                                              fill=color)
+                list_ids.append(_id)
+
+
+def button_begin_again():  # функция сброса и размещения кораблей на поле
     global list_ids
+    global points1, points2
+    global boom
+    global enemy_ships1
+    global enemy_ships2
+
     for el in list_ids:
         canvas.delete(el)
     list_ids = []
-    generate_enemy_ships()
+    generate_ship_list()
+    enemy_ships1 = generate_enemy_ships()
+    enemy_ships2 = generate_enemy_ships()
+    points1 = [[-1 for i in range(s_x)] for i in range(s_y)]
+    points2 = [[-1 for i in range(s_x)] for i in range(s_y)]
+    boom = [[0 for i in range(s_x)] for i in range(s_y)]
 
 
-b0 = Button(tk, text="Показать корабли противника", command=button_show_enemy)
+b0 = Button(tk, text="Показать корабли ИГРОКА", command=button_show_enemy1)
 b0.place(x=size_canvas_x + 20, y=30)
 
-b1 = Button(tk, text="Начать заново!", command=button_begin_again)
+b1 = Button(tk, text="Показать корабли КОМПЬЮТЕРА", command=button_show_enemy2)
 b1.place(x=size_canvas_x + 20, y=70)
 
+b2 = Button(tk, text="Начать заново!", command=button_begin_again)
+b2.place(x=size_canvas_x + 20, y=110)
 
-def draw_point(x,y):
-    print(enemy_ships[y][x])
-    if enemy_ships[y][x] == 0:
+
+def draw_point(x, y):
+    # print(enemy_ships1[y][x])
+    if enemy_ships1[y][x] == 0:
         color = "red"
-        id1 = canvas.create_oval(x * step_x, y * step_y, x * step_x + step_x, y * step_y + step_y, fill= color)
-        id2 = canvas.create_oval(x * step_x+step_x//3, y * step_y+step_y//3, x * step_x + step_x-step_x//3, y * step_y + step_y-step_y//3, fill="white")
+        id1 = canvas.create_oval(x * step_x, y * step_y, x * step_x + step_x, y * step_y + step_y, fill=color)
+        id2 = canvas.create_oval(x * step_x + step_x // 3, y * step_y + step_y // 3, x * step_x + step_x - step_x // 3,
+                                 y * step_y + step_y - step_y // 3, fill="white")
         list_ids.append(id1)
         list_ids.append(id2)
 
-    elif enemy_ships[y][x] > 0:
+    elif enemy_ships1[y][x] > 0:
         color = "blue"
         id1 = canvas.create_oval(x * step_x, y * step_y + step_y // 2 - step_y // 10, x * step_x + step_x,
-                                      y * step_y + step_y // 2 + step_y // 10, fill=color)
+                                 y * step_y + step_y // 2 + step_y // 10, fill=color)
         id2 = canvas.create_oval(x * step_x + step_x // 2 - step_x // 10, y * step_y,
-                                            x * step_x + step_x // 2 + step_x // 10, y * step_y + step_y, fill=color)
+                                 x * step_x + step_x // 2 + step_x // 10, y * step_y + step_y, fill=color)
         list_ids.append(id1)
         list_ids.append(id2)
+
+
+def check_winner(x, y):
+    win = False
+    if enemy_ships1[y][x] > 0:
+        boom[y][x] = enemy_ships1[y][x]
+    sum_enemy_ships1 = sum(sum(i) for i in zip(*enemy_ships1))
+    sum_boom = sum(sum(i) for i in zip(*boom))
+    #print(f"сумма кораблей {sum_enemy_ships1}, сумма подбитых {sum_boom}")
+    if sum_enemy_ships1 == sum_boom:
+        win = True
+    return win
 
 
 def add_to_all(event):  # координаты клика мышкой
+    global points1
     _type = 0  # ЛКМ
     if event.num == 3:
         _type = 1  # ПКМ
@@ -107,23 +175,32 @@ def add_to_all(event):  # координаты клика мышкой
     # print(mouse_x, mouse_y)
     ip_x = mouse_x // step_x
     ip_y = mouse_y // step_y
-    print(ip_x, ip_y, "_type:", _type)
+    #print(ip_x, ip_y, "_type:", _type)
     if ip_x < s_x and ip_y < s_y:
-        draw_point(ip_x, ip_y)
-
+        if points1[ip_y][ip_x] == -1:
+            points1[ip_y][ip_x] = _type
+            draw_point(ip_x, ip_y)
+            if check_winner(ip_x, ip_y):
+                print("Победа!!!")
+                points1 = [[10 for i in range(s_x)] for i in range(s_y)]
+        print(len(list_ids))
 
 
 canvas.bind_all("<Button-1>", add_to_all)  # ЛКМ
 canvas.bind_all("<Button-3>", add_to_all)  # ПКМ
 
 
-def generate_enemy_ships():
-    global enemy_ships
+def generate_ship_list():
+    global ships_list
     ships_list = []
     # генерируем список случайных длин кораблей
     for i in range(0, ships):
         ships_list.append(random.choice([ship_len1, ship_len2, ship_len3]))
-    print(ships_list)
+    # print(ships_list)
+
+
+def generate_enemy_ships():
+    global ships_list
     # подсчет суммарной длины кораблей
     sum_1_all_ships = sum(ships_list)
     sum_1_enemy = 0
@@ -190,8 +267,19 @@ def generate_enemy_ships():
 
         # print(sum_1_enemy)
         # print(ships_list)
-        print(enemy_ships)
+        # print(enemy_ships)
+    return enemy_ships
 
+generate_ship_list()
+print(ships_list)
+
+enemy_ships1 = generate_enemy_ships()
+enemy_ships2 = generate_enemy_ships()
+# print("****************************")
+# print(enemy_ships1)
+# print("****************************")
+# print(enemy_ships2)
+# print("****************************")
 
 generate_enemy_ships()
 
