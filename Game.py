@@ -13,8 +13,9 @@ step_x = size_canvas_x // s_x  # шаг по горизонтали
 step_y = size_canvas_y // s_y  # шаг по вертикали
 size_canvas_x = step_x * s_x
 size_canvas_y = step_y * s_y
+delta_menu_x = 4
 
-menu_x = step_x * 4  # размер меню по X
+menu_x = step_x * delta_menu_x  # размер меню по X
 menu_y = 40  # размер меню по Y
 
 ships = (s_x // 2)+1  # определяем макс кол-во кораблей
@@ -34,6 +35,18 @@ boom = [[0 for i in range(s_x)] for i in range(s_y)]
 
 # список кораблей компьютера
 ships_list = []
+
+# Если True, то ходит Компьютер. Если FALSE, то ходит игрок.
+hod_igrovomu_polu_1 = False
+
+
+computer_vs_human = True
+if computer_vs_human:
+    add_to_label = "(ИИ)"
+    hod_igrovomu_polu_1 = False
+else:
+    add_to_label = ""
+
 
 # print(enemy_ships1)
 
@@ -70,14 +83,31 @@ draw_table()
 draw_table(size_canvas_x + menu_x)
 
 # создаем название полям игрока и компа
-t0 = Label(tk, text="Поле игрока", font=("Helvetica", 16))
+t0 = Label(tk, text="ИГРОК", font=("Helvetica", 16))
 t0.place(x=size_canvas_x // 2 - t0.winfo_reqwidth() // 2, y=size_canvas_y + 3)
-t1 = Label(tk, text="Поле компьютера", font=("Helvetica", 16))
+t1 = Label(tk, text="КОМПЬЮТЕР" + add_to_label, font=("Helvetica", 16))
 t1.place(x=size_canvas_x + menu_x + size_canvas_x // 2 - t1.winfo_reqwidth() // 2, y=size_canvas_y + 3)
 
 # цветом выделяем ход игрока
 t0.configure(bg="red")
 t0.configure(bg="#f0f0f0")
+
+t3 = Label(tk, text="ОТЛАДКА", font=("Helvetica", 18))
+t3.place(x=size_canvas_x + step_x, y=3*step_y)
+
+
+def mark_igrok(mark_igrok1):
+    if mark_igrok1:
+        t1.configure(bg="red")
+        t0.configure(bg="#f0f0f0")
+        t3.configure(text="Ход КОМПЬЮТЕРА")
+    else:
+        t0.configure(bg="red")
+        t1.configure(bg="#f0f0f0")
+        t3.configure(text="Ход ИГРОКА")
+
+
+mark_igrok(hod_igrovomu_polu_1)
 
 
 def button_show_enemy1():  # кнопка отрисовывает все корабли противника
@@ -122,14 +152,14 @@ def button_begin_again():  # функция сброса и размещения
     boom = [[0 for i in range(s_x)] for i in range(s_y)]
 
 
-b0 = Button(tk, text="Показать корабли ИГРОКА", command=button_show_enemy1)
-b0.place(x=size_canvas_x + 20, y=30)
-
-b1 = Button(tk, text="Показать корабли КОМПЬЮТЕРА", command=button_show_enemy2)
-b1.place(x=size_canvas_x + 20, y=70)
+# b0 = Button(tk, text="показать корабли ИГРОКА", command=button_show_enemy1)
+# b0.place(x=size_canvas_x + 20, y=30)
+#
+# b1 = Button(tk, text="показать корабли КОМПЬЮТЕРА", command=button_show_enemy2)
+# b1.place(x=size_canvas_x + 20, y=70)
 
 b2 = Button(tk, text="Начать заново!", command=button_begin_again)
-b2.place(x=size_canvas_x + 20, y=110)
+b2.place(x=size_canvas_x + 110, y=490)
 
 
 def draw_point(x, y):
@@ -152,20 +182,78 @@ def draw_point(x, y):
         list_ids.append(id2)
 
 
-def check_winner(x, y):
-    win = False
-    if enemy_ships1[y][x] > 0:
-        boom[y][x] = enemy_ships1[y][x]
-    sum_enemy_ships1 = sum(sum(i) for i in zip(*enemy_ships1))
-    sum_boom = sum(sum(i) for i in zip(*boom))
-    #print(f"сумма кораблей {sum_enemy_ships1}, сумма подбитых {sum_boom}")
-    if sum_enemy_ships1 == sum_boom:
-        win = True
+def draw_point2(x, y, offset_x=size_canvas_x + menu_x):
+    # print(enemy_ships1[y][x])
+    if enemy_ships2[y][x] == 0:
+        color = "red"
+        id1 = canvas.create_oval(offset_x + x * step_x, y * step_y, offset_x + x * step_x + step_x, y * step_y + step_y, fill=color)
+        id2 = canvas.create_oval(offset_x + x * step_x + step_x // 3, y * step_y + step_y // 3, offset_x + x * step_x + step_x - step_x // 3,
+                                 y * step_y + step_y - step_y // 3, fill="white")
+        list_ids.append(id1)
+        list_ids.append(id2)
+
+    elif enemy_ships2[y][x] > 0:
+        color = "blue"
+        id1 = canvas.create_oval(offset_x + x * step_x, y * step_y + step_y // 2 - step_y // 10,offset_x + x * step_x + step_x,
+                                 y * step_y + step_y // 2 + step_y // 10, fill=color)
+        id2 = canvas.create_oval(offset_x + x * step_x + step_x // 2 - step_x // 10, y * step_y,
+                                 offset_x + x * step_x + step_x // 2 + step_x // 10, y * step_y + step_y, fill=color)
+        list_ids.append(id1)
+        list_ids.append(id2)
+
+
+def check_winner2():
+    win = True
+    for i in range(0, s_x):
+        for j in range(0, s_y):
+            if enemy_ships1[j][i] > 0:
+                if points1[j][i] == -1:
+                    win = False
+
     return win
 
 
+def check_winner2_igrok_2():
+    win = True
+    for i in range(0, s_x):
+        for j in range(0, s_y):
+            if enemy_ships2[j][i] > 0:
+                if points2[j][i] == -1:
+                    win = False
+
+    return win
+
+
+def hod_computer():
+    global points1, points2, hod_igrovomu_polu_1
+    tk.update()
+    time.sleep(1)
+    hod_igrovomu_polu_1 = False
+    ip_x = random.randint(0, s_x-1)
+    ip_y = random.randint(0, s_y-1)
+    while not points1[ip_y][ip_x] == -1:
+        ip_x = random.randint(0, s_x-1)
+        ip_y = random.randint(0, s_y-1)
+    points1[ip_y][ip_x] = 7
+    draw_point(ip_x, ip_y)
+    if check_winner2():
+        winner = "Победа КОМПЬЮТЕРА!!!"
+        print(winner)
+        points1 = [[10 for i in range(s_x)] for i in range(s_y)]
+        points2 = [[10 for i in range(s_x)] for i in range(s_y)]
+        id1 = canvas.create_rectangle(step_x * 3, step_y * 3, size_canvas_x + menu_x + size_canvas_x - step_x * 3,
+                                      size_canvas_y - step_y, fill="green")  # банер победителя
+        list_ids.append(id1)
+        id2 = canvas.create_rectangle(step_x * 3 + step_x // 2, step_y * 3 + step_y // 2,
+                                      size_canvas_x + menu_x + size_canvas_x - step_x * 3 - step_x // 2,
+                                      size_canvas_y - step_y - step_y // 2, fill="yellow")
+        list_ids.append(id2)
+        id3 = canvas.create_text(step_x * 8, step_y * 4, text=winner, font=("Arial", 40), justify=CENTER)
+        list_ids.append(id3)
+
+
 def add_to_all(event):  # координаты клика мышкой
-    global points1
+    global points1, points2, hod_igrovomu_polu_1
     _type = 0  # ЛКМ
     if event.num == 3:
         _type = 1  # ПКМ
@@ -173,19 +261,58 @@ def add_to_all(event):  # координаты клика мышкой
     mouse_x = canvas.winfo_pointerx() - canvas.winfo_rootx()
     mouse_y = canvas.winfo_pointery() - canvas.winfo_rooty()
     # print(mouse_x, mouse_y)
+
     ip_x = mouse_x // step_x
     ip_y = mouse_y // step_y
-    #print(ip_x, ip_y, "_type:", _type)
-    if ip_x < s_x and ip_y < s_y:
+
+    # первое игровое поле
+    print(ip_x, ip_y, "_type:", _type)
+    if ip_x < s_x and ip_y < s_y and hod_igrovomu_polu_1:       # проверка, что клик в пределах игр. области игрока
         if points1[ip_y][ip_x] == -1:
             points1[ip_y][ip_x] = _type
+            hod_igrovomu_polu_1 = False
             draw_point(ip_x, ip_y)
-            if check_winner(ip_x, ip_y):
-                print("Победа!!!")
+            if check_winner2():
+                hod_igrovomu_polu_1 = True
+                winner = "Победа КОМПЬЮТЕРА!!!"
+                print(winner)
                 points1 = [[10 for i in range(s_x)] for i in range(s_y)]
-        print(len(list_ids))
+                points2 = [[10 for i in range(s_x)] for i in range(s_y)]
+                id1 = canvas.create_rectangle(step_x * 3, step_y * 3, size_canvas_x + menu_x + size_canvas_x-step_x*3, size_canvas_y - step_y, fill="green") # банер победителя
+                list_ids.append(id1)
+                id2 = canvas.create_rectangle(step_x * 3 + step_x//2, step_y * 3 + step_y//2,
+                                              size_canvas_x + menu_x + size_canvas_x - step_x * 3-step_x//2,
+                                              size_canvas_y - step_y - step_y//2, fill="yellow")
+                list_ids.append(id2)
+                id3 = canvas.create_text(step_x*8, step_y*4, text=winner, font=("Arial", 40), justify=CENTER)
+                list_ids.append(id3)
+        #print(len(list_ids))
 
-
+    # второе игровое поле
+    if ip_x >= s_x + delta_menu_x and ip_x <= s_x + s_x + delta_menu_x and ip_y < s_y and not hod_igrovomu_polu_1:    # Проверка, что клик в пределах игр. области компьютера
+        if points2[ip_y][ip_x - s_x - delta_menu_x] == -1:
+            points2[ip_y][ip_x - s_x - delta_menu_x] = _type
+            hod_igrovomu_polu_1 = True
+            draw_point2(ip_x - s_x - delta_menu_x, ip_y)
+            if check_winner2_igrok_2():
+                hod_igrovomu_polu_1 = False
+                winner = "Победа ИГРОКА!!!"
+                print(winner)
+                points2 = [[10 for i in range(s_x)] for i in range(s_y)]
+                id1 = canvas.create_rectangle(step_x * 3, step_y * 3,
+                                              size_canvas_x + menu_x + size_canvas_x - step_x * 3,
+                                              size_canvas_y - step_y, fill="green")  # банер победителя
+                list_ids.append(id1)
+                id2 = canvas.create_rectangle(step_x * 3 + step_x // 2, step_y * 3 + step_y // 2,
+                                              size_canvas_x + menu_x + size_canvas_x - step_x * 3 - step_x // 2,
+                                              size_canvas_y - step_y - step_y // 2, fill="yellow")
+                list_ids.append(id2)
+                id3 = canvas.create_text(step_x * 8, step_y * 4, text=winner, font=("Arial", 40), justify=CENTER)
+                list_ids.append(id3)
+            if computer_vs_human:
+                mark_igrok(hod_igrovomu_polu_1)
+                hod_computer()
+    mark_igrok(hod_igrovomu_polu_1)
 canvas.bind_all("<Button-1>", add_to_all)  # ЛКМ
 canvas.bind_all("<Button-3>", add_to_all)  # ПКМ
 
@@ -271,7 +398,7 @@ def generate_enemy_ships():
     return enemy_ships
 
 generate_ship_list()
-print(ships_list)
+#print(ships_list)
 
 enemy_ships1 = generate_enemy_ships()
 enemy_ships2 = generate_enemy_ships()
@@ -287,4 +414,4 @@ while app_running:
     if app_running:
         tk.update_idletasks()
         tk.update()
-    time.sleep(0.005)
+    time.sleep(0.05)
